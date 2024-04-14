@@ -22,7 +22,7 @@ def get_post_page_tag(content_type):
         return "Unknown"
 
 def format_date(date):
-    if isinstance(date, str):
+    if isinstance(date, str) and date.strip():
         date_obj = datetime.strptime(date, "%m/%d/%Y")
         return date_obj.strftime("%b%Y").lower()
     return None
@@ -37,13 +37,15 @@ def get_table_download_link(df):
 def process_data(file):
     data = pd.read_csv(file)
     
-    # Apply the functions to the data
+    # Convert all dates first (including parsing them correctly)
+    data['Formatted Date'] = data['Date'].apply(format_date)
+
+    # Fill missing 'Formatted Date' entries with the closest available dates
+    data['Formatted Date'] = data['Formatted Date'].fillna(method='ffill').fillna(method='bfill')
+    
+    # Apply other transformations
     data['New or Existing'] = data['Content Type'].apply(get_new_existing_tag)
     data['Post or Page'] = data['Content Type'].apply(get_post_page_tag)
-    data['Formatted Date'] = data['Date'].apply(format_date)
-    
-    # Filter out rows where the date could not be formatted
-    data = data.dropna(subset=['Formatted Date'])
     
     # Build the full tag for the cleaned data
     data['Full Tag'] = data.apply(
